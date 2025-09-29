@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useGPS } from "../hooks/useGPS";
 
 const formatTime = (seconds) => {
@@ -37,6 +37,22 @@ export default function Home() {
     resetTracking,
   } = useGPS(segmentLength);
 
+  const startPressStart = useRef(null);
+  const resetPressStart = useRef(null);
+
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible" && isTracking) {
+        // 必要なら再度GPS計測を開始
+        startTracking();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [isTracking]);
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8">
@@ -69,8 +85,8 @@ export default function Home() {
                 <option value={1000}>1000m</option>
               </select>
             </div>
-            {/* テストモード切り替え */}
-            <div className="mt-4">
+            {/* テストモード切り替え（スマホでは非表示） */}
+            <div className="mt-4 hidden sm:block">
               <button
                 onClick={toggleTestMode}
                 className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
@@ -140,10 +156,20 @@ export default function Home() {
           <div className="flex gap-3 mb-6">
             {!isTracking ? (
               <button
-                onClick={startTracking}
+                onPointerDown={() => {
+                  startPressStart.current = Date.now();
+                }}
+                onPointerUp={() => {
+                  if (Date.now() - startPressStart.current > 1000) {
+                    startTracking();
+                  }
+                  startPressStart.current = null;
+                }}
                 className="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg transition-colors"
               >
-                {isTestMode ? "🧪 テスト開始" : "📍 スタート"}
+                {isTestMode
+                  ? "🧪 テスト開始（長押し）"
+                  : "📍 スタート（長押し）"}
               </button>
             ) : (
               <button
@@ -154,10 +180,18 @@ export default function Home() {
               </button>
             )}
             <button
-              onClick={resetTracking}
+              onPointerDown={() => {
+                resetPressStart.current = Date.now();
+              }}
+              onPointerUp={() => {
+                if (Date.now() - resetPressStart.current > 1000) {
+                  resetTracking();
+                }
+                resetPressStart.current = null;
+              }}
               className="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg transition-colors"
             >
-              🔄 リセット
+              🔄 リセット（長押し）
             </button>
           </div>
 
@@ -214,10 +248,16 @@ export default function Home() {
                         key={originalIndex}
                         className="flex justify-between items-center py-2 border-b border-gray-100 last:border-b-0"
                       >
-                        <div className="font-medium text-gray-700">
+                        <div
+                          className="font-medium text-gray-700"
+                          style={{ fontSize: "30px" }}
+                        >
                           #{originalIndex} ({segmentLength}m)
                         </div>
-                        <div className={`font-bold ${paceColor}`}>
+                        <div
+                          className={`font-bold ${paceColor}`}
+                          style={{ fontSize: "30px" }}
+                        >
                           {formatTime(data.time)}
                         </div>
                       </div>
