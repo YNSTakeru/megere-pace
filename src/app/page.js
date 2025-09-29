@@ -39,6 +39,7 @@ export default function Home() {
 
   const startPressStart = useRef(null);
   const resetPressStart = useRef(null);
+  const stopPressStart = useRef(null);
 
   useEffect(() => {
     const handleVisibility = () => {
@@ -166,6 +167,7 @@ export default function Home() {
                   startPressStart.current = null;
                 }}
                 className="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg transition-colors"
+                style={{ userSelect: "none" }}
               >
                 {isTestMode
                   ? "🧪 テスト開始（長押し）"
@@ -173,10 +175,19 @@ export default function Home() {
               </button>
             ) : (
               <button
-                onClick={stopTracking}
+                onPointerDown={() => {
+                  stopPressStart.current = Date.now();
+                }}
+                onPointerUp={() => {
+                  if (Date.now() - stopPressStart.current > 1000) {
+                    stopTracking();
+                  }
+                  stopPressStart.current = null;
+                }}
                 className="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-6 rounded-lg transition-colors"
+                style={{ userSelect: "none" }}
               >
-                ⏹️ ストップ
+                ⏹️ ストップ（長押し）
               </button>
             )}
             <button
@@ -190,6 +201,7 @@ export default function Home() {
                 resetPressStart.current = null;
               }}
               className="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg transition-colors"
+              style={{ userSelect: "none" }}
             >
               🔄 リセット（長押し）
             </button>
@@ -205,18 +217,21 @@ export default function Home() {
                 <button
                   onClick={() => addManualPace(45 + Math.random() * 10)}
                   className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-3 rounded text-sm transition-colors"
+                  style={{ userSelect: "none" }}
                 >
                   高速 (45-55s)
                 </button>
                 <button
                   onClick={() => addManualPace(55 + Math.random() * 10)}
                   className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-3 rounded text-sm transition-colors"
+                  style={{ userSelect: "none" }}
                 >
                   普通 (55-65s)
                 </button>
                 <button
                   onClick={() => addManualPace(65 + Math.random() * 15)}
                   className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-3 rounded text-sm transition-colors"
+                  style={{ userSelect: "none" }}
                 >
                   低速 (65-80s)
                 </button>
@@ -250,13 +265,19 @@ export default function Home() {
                       >
                         <div
                           className="font-medium text-gray-700"
-                          style={{ fontSize: "30px" }}
+                          style={{
+                            fontSize: "30px",
+                            userSelect: "none",
+                          }}
                         >
                           #{originalIndex} ({segmentLength}m)
                         </div>
                         <div
                           className={`font-bold ${paceColor}`}
-                          style={{ fontSize: "30px" }}
+                          style={{
+                            fontSize: "30px",
+                            userSelect: "none",
+                          }}
                         >
                           {formatTime(data.time)}
                         </div>
