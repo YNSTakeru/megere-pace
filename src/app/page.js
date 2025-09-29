@@ -157,21 +157,11 @@ export default function Home() {
           <div className="flex gap-3 mb-6">
             {!isTracking ? (
               <button
-                onPointerDown={() => {
-                  startPressStart.current = Date.now();
-                }}
-                onPointerUp={() => {
-                  if (Date.now() - startPressStart.current > 1000) {
-                    startTracking();
-                  }
-                  startPressStart.current = null;
-                }}
+                onClick={startTracking}
                 className="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg transition-colors"
                 style={{ userSelect: "none" }}
               >
-                {isTestMode
-                  ? "🧪 テスト開始（長押し）"
-                  : "📍 スタート（長押し）"}
+                {isTestMode ? "🧪 テスト開始" : "📍 スタート"}
               </button>
             ) : (
               <button
@@ -183,6 +173,9 @@ export default function Home() {
                     stopTracking();
                   }
                   stopPressStart.current = null;
+                }}
+                onSelect={(e) => {
+                  e.preventDefault();
                 }}
                 className="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-6 rounded-lg transition-colors"
                 style={{ userSelect: "none" }}
@@ -199,6 +192,9 @@ export default function Home() {
                   resetTracking();
                 }
                 resetPressStart.current = null;
+              }}
+              onSelect={(e) => {
+                e.preventDefault();
               }}
               className="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg transition-colors"
               style={{ userSelect: "none" }}
