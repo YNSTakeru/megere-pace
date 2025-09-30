@@ -19,6 +19,29 @@ const formatPace = (seconds) => {
 };
 
 export default function Home() {
+  // 音声案内再生関数（Chrome/Safari両対応）
+  const speakWelcome = () => {
+    if (typeof window !== "undefined" && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+      const utter = new window.SpeechSynthesisUtterance(
+        "ペースメーカーアプリへようこそ。スタートボタンで計測を開始できます。"
+      );
+      utter.lang = "ja-JP";
+      window.speechSynthesis.speak(utter);
+    }
+  };
+  // サイトアクセス時に音声読み上げ
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.speechSynthesis) {
+      // Safari等の制約を考慮し、ユーザー操作なしでも一度だけ発話を試みる
+      const utter = new window.SpeechSynthesisUtterance(
+        "ペースメーカーアプリへようこそ。スタートボタンで計測を開始できます。"
+      );
+      utter.lang = "ja-JP";
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(utter);
+    }
+  }, []);
   // 区間距離の選択状態
   const [segmentLength, setSegmentLength] = useState(100);
   const {
@@ -58,6 +81,16 @@ export default function Home() {
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-md mx-auto">
+          {/* 音声案内ボタン */}
+          <div className="mb-4 flex justify-center">
+            <button
+              onClick={speakWelcome}
+              className="px-4 py-2 rounded bg-blue-500 text-white font-bold hover:bg-blue-600 transition-colors"
+              style={{ userSelect: "none" }}
+            >
+              案内を聞く
+            </button>
+          </div>
           {/* ヘッダー */}
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-gray-800 mb-2">
