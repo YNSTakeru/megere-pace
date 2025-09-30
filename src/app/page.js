@@ -19,6 +19,55 @@ const formatPace = (seconds) => {
 };
 
 export default function Home() {
+  // 「あ」を喋り続けるループ用
+  const aLoopRef = useRef(null);
+  const startALoop = () => {
+    if (typeof window !== "undefined" && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+      const speakA = () => {
+        const utter = new window.SpeechSynthesisUtterance("、");
+        utter.lang = "ja-JP";
+        utter.onend = () => {
+          if (aLoopRef.current) speakA();
+        };
+        window.speechSynthesis.speak(utter);
+      };
+      aLoopRef.current = true;
+      speakA();
+    }
+  };
+  const stopALoop = () => {
+    aLoopRef.current = false;
+    if (typeof window !== "undefined" && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+  };
+  // 最新paceDataを音声で再生する関数
+  const speakLatestPace = () => {
+    if (paceData.length === 0) return;
+    const latest = paceData[paceData.length - 1];
+    if (typeof window !== "undefined" && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+      const msg = new window.SpeechSynthesisUtterance(
+        `${latest.segment * segmentLength}メートル通過。${Math.round(
+          latest.time
+        )}秒です。`
+      );
+      msg.lang = "ja-JP";
+      window.speechSynthesis.speak(msg);
+    }
+  };
+  // スタート時の音声案内
+  const speakStart = () => {
+    if (typeof window !== "undefined" && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+      const utter = new window.SpeechSynthesisUtterance(
+        "計測を開始します。100メートルごとにペースをお知らせします。"
+      );
+      utter.lang = "ja-JP";
+      window.speechSynthesis.speak(utter);
+    }
+  };
   // 音声案内再生関数（Chrome/Safari両対応）
   const speakWelcome = () => {
     if (typeof window !== "undefined" && window.speechSynthesis) {
@@ -77,10 +126,44 @@ export default function Home() {
     };
   }, [isTracking]);
 
+  useEffect(() => {
+    if (paceData.length > 0) {
+      // 「あ」ループを一時停止
+      stopALoop();
+      // 最新区間音声を話し、終わったら「あ」ループ再開
+      const latest = paceData[paceData.length - 1];
+      if (typeof window !== "undefined" && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+        const msg = new window.SpeechSynthesisUtterance(
+          `${latest.segment * segmentLength}メートル通過。${Math.round(
+            latest.time
+          )}秒です。`
+        );
+        msg.lang = "ja-JP";
+        msg.onend = () => {
+          startALoop();
+        };
+        window.speechSynthesis.speak(msg);
+      }
+    }
+  }, [paceData]);
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-md mx-auto">
+          {/* 最新paceData音声再生ボタン */}
+          {paceData.length > 0 && (
+            <div className="mb-4 flex justify-center">
+              <button
+                onClick={speakLatestPace}
+                className="px-4 py-2 rounded bg-orange-500 text-white font-bold hover:bg-orange-600 transition-colors"
+                style={{ userSelect: "none" }}
+              >
+                最新区間を音声で再生
+              </button>
+            </div>
+          )}
           {/* 音声案内ボタン */}
           <div className="mb-4 flex justify-center">
             <button
@@ -190,7 +273,10 @@ export default function Home() {
           <div className="flex gap-3 mb-6">
             {!isTracking ? (
               <button
-                onClick={startTracking}
+                onClick={() => {
+                  speakStart();
+                  startTracking();
+                }}
                 className="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg transition-colors"
                 style={{ userSelect: "none" }}
               >
