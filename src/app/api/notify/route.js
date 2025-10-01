@@ -40,10 +40,8 @@ export async function POST(req) {
 // 本番ではVAPID秘密鍵を安全に管理してください
 import webpush from "web-push";
 
-const VAPID_PUBLIC_KEY =
-  "BDSk9o3kyYS8nUkdRXZc6zmIGxDxsPYW8XEzbqhyyWhPhLkwYq7Uf8Bwq4OfgGuqA99XqAnBojiGnKA9bW7Z3OE";
-const VAPID_PRIVATE_KEY =
-  "bwavq-pmanktT6oH0WHaH69OXBJv3G6xLqnDJZ4VPL0-QoH0xJOq3H6z8nBUG71t0ezCA";
+const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
 
 webpush.setVapidDetails(
   "mailto:example@example.com",

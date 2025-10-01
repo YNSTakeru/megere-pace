@@ -1,8 +1,7 @@
 "use client";
 import { useState } from "react";
 
-const VAPID_PUBLIC_KEY =
-  "BDSk9o3kyYS8nUkdRXZc6zmIGxDxsPYW8XEzbqhyyWhPhLkwYq7Uf8Bwq4OfgGuqA99XqAnBojiGnKA9bW7Z3OE"; // ここにVAPID公開鍵をBase64で挿入
+const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY; // 環境変数からVAPID公開鍵を取得
 
 function urlBase64ToUint8Array(base64String) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
