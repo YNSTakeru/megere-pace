@@ -18,7 +18,11 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
+    <html lang="ja">
+      <head>
+        <link rel="manifest" href="/manifest.json" />
+        {/* ...他のmetaやlink... */}
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
