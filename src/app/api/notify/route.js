@@ -5,29 +5,32 @@ let subscriptions = [];
 
 export async function POST(req) {
   try {
-    const { subscription } = await req.json();
+    const { subscription, gps } = await req.json();
     if (!subscription) {
       return NextResponse.json(
         { status: "ng", error: "no subscription" },
         { status: 400 }
       );
     }
-    // ここで受け取った購読者だけにPush通知
-    const payload = JSON.stringify({
-      title: "個別Push通知",
-      body: "あなたにだけ届く通知です",
-      icon: "/favicon.ico",
-      data: { url: "/sandbox" },
-    });
-    try {
-      await webpush.sendNotification(subscription, payload);
-      return NextResponse.json({ status: "ok" });
-    } catch (err) {
-      return NextResponse.json(
-        { status: "ng", error: err.message },
-        { status: 500 }
-      );
+    // 1分間、5秒間隔でPush通知を送信
+    const sendPush = (count) => {
+      const payload = JSON.stringify({
+        title: `GPS通知 #${count + 1}`,
+        body: gps
+          ? `緯度: ${gps.latitude}, 経度: ${gps.longitude}`
+          : "GPS情報なし",
+        icon: "/favicon.ico",
+        data: { url: "/sandbox", gps },
+      });
+      webpush.sendNotification(subscription, payload).catch(() => {});
+    };
+    for (let i = 0; i < 12; i++) {
+      setTimeout(() => sendPush(i), i * 5000);
     }
+    return NextResponse.json({
+      status: "ok",
+      message: "1分間、5秒間隔でPush通知を送信します",
+    });
   } catch (e) {
     return NextResponse.json(
       { status: "ng", error: e.message },

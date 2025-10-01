@@ -23,31 +23,48 @@ export default function Page() {
       return;
     }
     try {
-      // Service Worker登録
-      const reg = await navigator.serviceWorker.register("/serviceworker.js");
-      await navigator.serviceWorker.ready;
-      if (!reg.pushManager) {
-        setResult("pushManagerが有効ではありません（iOS Safari等）");
-        return;
-      }
-      const subscription = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
-      });
-      // サーバーに購読情報を送信
-      const res = await fetch("/api/notify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subscription: subscription.toJSON() }),
-      });
-      if (res.ok) {
-        setResult(
-          "購読成功: " + JSON.stringify(subscription.toJSON(), null, 2)
-        );
-      } else {
-        setResult("サーバーへの購読情報送信失敗");
-      }
-      console.log("Subscription token:", subscription.toJSON());
+      // 現在地取得
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          const coords = {
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+          };
+          // Service Worker登録
+          const reg = await navigator.serviceWorker.register(
+            "/serviceworker.js"
+          );
+          await navigator.serviceWorker.ready;
+          if (!reg.pushManager) {
+            setResult("pushManagerが有効ではありません（iOS Safari等）");
+            return;
+          }
+          const subscription = await reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+          });
+          // サーバーに購読情報とGPS情報を送信
+          const res = await fetch("/api/notify", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              subscription: subscription.toJSON(),
+              gps: coords,
+            }),
+          });
+          if (res.ok) {
+            setResult(
+              "購読成功: " + JSON.stringify(subscription.toJSON(), null, 2)
+            );
+          } else {
+            setResult("サーバーへの購読情報送信失敗");
+          }
+          console.log("Subscription token:", subscription.toJSON());
+        },
+        (err) => {
+          setResult("位置情報取得失敗: " + err.message);
+        }
+      );
     } catch (e) {
       setResult("購読失敗: " + e.message);
     }
