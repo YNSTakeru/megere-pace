@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useBackgroundStayAlive } from "../hooks/useBackgroundStayAlive";
 import { useGPS } from "../hooks/useGPS";
 
 const formatTime = (seconds) => {
@@ -50,8 +51,8 @@ export default function Home() {
       window.speechSynthesis.cancel();
       const msg = new window.SpeechSynthesisUtterance(
         `${latest.segment * segmentLength}メートル通過。${Math.round(
-          latest.time
-        )}秒です。`
+          latest.time,
+        )}秒です。`,
       );
       msg.lang = "ja-JP";
       window.speechSynthesis.speak(msg);
@@ -62,7 +63,7 @@ export default function Home() {
     if (typeof window !== "undefined" && window.speechSynthesis) {
       window.speechSynthesis.cancel();
       const utter = new window.SpeechSynthesisUtterance(
-        "計測を開始します。100メートルごとにペースをお知らせします。"
+        "計測を開始します。100メートルごとにペースをお知らせします。",
       );
       utter.lang = "ja-JP";
       window.speechSynthesis.speak(utter);
@@ -73,7 +74,7 @@ export default function Home() {
     if (typeof window !== "undefined" && window.speechSynthesis) {
       window.speechSynthesis.cancel();
       const utter = new window.SpeechSynthesisUtterance(
-        "ペースメーカーアプリへようこそ。スタートボタンで計測を開始できます。"
+        "ペースメーカーアプリへようこそ。スタートボタンで計測を開始できます。",
       );
       utter.lang = "ja-JP";
       window.speechSynthesis.speak(utter);
@@ -84,7 +85,7 @@ export default function Home() {
     if (typeof window !== "undefined" && window.speechSynthesis) {
       // Safari等の制約を考慮し、ユーザー操作なしでも一度だけ発話を試みる
       const utter = new window.SpeechSynthesisUtterance(
-        "ペースメーカーアプリへようこそ。スタートボタンで計測を開始できます。"
+        "ペースメーカーアプリへようこそ。スタートボタンで計測を開始できます。",
       );
       utter.lang = "ja-JP";
       window.speechSynthesis.cancel();
@@ -136,8 +137,8 @@ export default function Home() {
         window.speechSynthesis.cancel();
         const msg = new window.SpeechSynthesisUtterance(
           `${latest.segment * segmentLength}メートル通過。${Math.round(
-            latest.time
-          )}秒です。`
+            latest.time,
+          )}秒です。`,
         );
         msg.lang = "ja-JP";
         msg.onend = () => {
@@ -148,10 +149,68 @@ export default function Home() {
     }
   }, [paceData]);
 
+  const {
+    isPlaying: isBgPlaying,
+    audioFile,
+    fileName,
+    startStayAlive,
+    stopStayAlive,
+    handleFileChange,
+  } = useBackgroundStayAlive();
+  const [bgMode, setBgMode] = useState(false);
+
+  // バックグラウンド実行モードのトグル時
+  const handleBgModeToggle = async (checked) => {
+    setBgMode(checked);
+    if (checked) {
+      await startStayAlive();
+    } else {
+      stopStayAlive();
+    }
+  };
+
+  // GPS計測開始/停止と連動
+  const handleStart = async () => {
+    speakStart();
+    startTracking();
+    if (bgMode) await startStayAlive();
+  };
+  const handleStop = () => {
+    stopTracking();
+    if (bgMode) stopStayAlive();
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-md mx-auto">
+          {/* バックグラウンド実行モード UI */}
+          <div className="mb-4 flex flex-col gap-2 items-center">
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={bgMode}
+                onChange={(e) => handleBgModeToggle(e.target.checked)}
+                className="form-checkbox h-5 w-5 text-blue-600"
+              />
+              <span className="text-sm font-medium text-gray-700">
+                バックグラウンド実行モード
+              </span>
+            </label>
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-gray-600">音声ファイル:</label>
+              <input
+                type="file"
+                accept="audio/mp3,audio/mpeg"
+                onChange={(e) => handleFileChange(e.target.files?.[0])}
+                className="text-xs"
+              />
+              <span className="text-xs text-gray-500">{fileName}</span>
+            </div>
+            <div className="text-xs text-gray-500">
+              状態: {isBgPlaying ? "再生中" : "停止中"}
+            </div>
+          </div>
           {/* 最新paceData音声再生ボタン */}
           {paceData.length > 0 && (
             <div className="mb-4 flex justify-center">
@@ -273,10 +332,7 @@ export default function Home() {
           <div className="flex gap-3 mb-6">
             {!isTracking ? (
               <button
-                onClick={() => {
-                  speakStart();
-                  startTracking();
-                }}
+                onClick={handleStart}
                 className="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg transition-colors"
                 style={{ userSelect: "none" }}
               >
@@ -289,13 +345,11 @@ export default function Home() {
                 }}
                 onPointerUp={() => {
                   if (Date.now() - stopPressStart.current > 1000) {
-                    stopTracking();
+                    handleStop();
                   }
                   stopPressStart.current = null;
                 }}
-                onSelect={(e) => {
-                  e.preventDefault();
-                }}
+                onSelect={(e) => e.preventDefault()}
                 className="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-6 rounded-lg transition-colors"
                 style={{ userSelect: "none" }}
               >
@@ -312,9 +366,7 @@ export default function Home() {
                 }
                 resetPressStart.current = null;
               }}
-              onSelect={(e) => {
-                e.preventDefault();
-              }}
+              onSelect={(e) => e.preventDefault()}
               className="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg transition-colors"
               style={{ userSelect: "none" }}
             >
@@ -370,8 +422,8 @@ export default function Home() {
                       data.time < 60
                         ? "text-green-600"
                         : data.time < 90
-                        ? "text-yellow-600"
-                        : "text-red-600";
+                          ? "text-yellow-600"
+                          : "text-red-600";
 
                     return (
                       <div
